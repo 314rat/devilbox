@@ -1,52 +1,38 @@
-@echo off
-setlocal EnableDelayedExpansion
+@echo on
+echo Starting minimal build...
 
-:: Set variables
-set "SOURCE=main.cpp"
-set "OUTPUT=DevilboxManager.exe"
-set "COMPILER=g++"
-set "LIBS=-lole32 -lcomctl32 -lshell32"
-set "FLAGS=-mwindows"
+echo Step 1: Checking for utils directory...
+if not exist "utils" (
+  echo ERROR: utils directory not found!
+  goto end
+)
+echo utils directory exists.
 
-:: Check if source exists
-if not exist "%SOURCE%" (
-    echo Error: Source file %SOURCE% not found!
-    pause
-    exit /b 1
+echo Step 2: Listing files in utils directory...
+dir /b utils\*.c
+echo Files listed.
+
+echo Step 3: Killing existing process...
+taskkill /F /IM DevilboxManager.exe 2>nul
+echo Process killed or not running.
+
+echo Step 4: Compiling...
+g++ main.cpp utils\*.c -Iutils -o DevilboxManager.exe -lole32 -lcomctl32 -lshell32 -lgdi32 -lcomdlg32 -mwindows
+
+if %ERRORLEVEL% NEQ 0 (
+  echo Compilation failed with error code %ERRORLEVEL%
+  echo Trying without -mwindows flag for error output...
+  g++ main.cpp utils\*.c -Iutils -o DevilboxManager.exe -lole32 -lcomctl32 -lshell32 -lgdi32 -lcomdlg32
 )
 
-:: Try to kill running process
-taskkill /F /IM "%OUTPUT%" >nul 2>&1
-
-:: Wait a moment to ensure process is terminated
-timeout /t 1 /nobreak >nul
-
-:: Remove old executable if exists
-if exist "%OUTPUT%" (
-    del "%OUTPUT%" 2>nul
-    if exist "%OUTPUT%" (
-        echo Error: Could not delete old executable! Make sure the program is not running.
-        echo Try manually closing DevilboxManager from the system tray.
-        pause
-        exit /b 1
-    )
-)
-
-echo Building %SOURCE% ...
-%COMPILER% %SOURCE% -o %OUTPUT% %LIBS% %FLAGS%
-
-if %ERRORLEVEL% EQU 0 (
-    echo.
-    echo Compilation successful!
-    echo Output file: %OUTPUT%
-    echo.
-    echo Starting application...
-    start "" "%OUTPUT%"
+if exist DevilboxManager.exe (
+  echo DevilboxManager.exe was created successfully.
+  echo Starting application...
+  start "" DevilboxManager.exe
 ) else (
-    echo.
-    echo Compilation failed with error code %ERRORLEVEL%!
-    pause
-    exit /b 1
+  echo ERROR: DevilboxManager.exe was not created.
 )
 
-endlocal
+:end
+echo Script completed.
+pause
